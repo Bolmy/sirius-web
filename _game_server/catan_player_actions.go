@@ -75,33 +75,47 @@ func (p *Player) CanAfford(cost ResourceMap) bool {
 	return true
 }
 
-func (g *GameSavestate) BuildSettlement(playerID int, cornerID int) error {
+func (g *GameSavestate) BuildSettlementOrCity(playerID int, cornerID int) error {
 	player := g.Players[playerID]
 	corner := g.Board.Corners[cornerID]
 
 	// 1. Basic Validations
 	if corner.OwnerID != -1 {
 		return fmt.Errorf("corner already occupied")
+	} else if (corner.OwnerID == playerID) && (corner.IsCity != true) {
+		// upgrade to city
+		// 2.1 Pay the bank
+		cost := Costs["city"]
+		if err := player.Pay(cost, g.Bank); err != nil {
+			return err
+		}
+
+		//3.1 Place the piece
+		corner.OwnerID = playerID
+		corner.IsCity = true
+		player.Points += 1
+
+	} else if corner.OwnerID == -1 {
+		// place settlement
+		// 2.2 Pay the bank
+		cost := Costs["settlement"]
+		if err := player.Pay(cost, g.Bank); err != nil {
+			return err
+		}
+
+		// 3.2 Place the piece
+		corner.OwnerID = playerID
+		player.Points += 1
+
+		// 4. CRITICAL: Recalculate Longest Road for EVERYONE
+		// Because this settlement might have split an opponent's path
+		for _, p := range g.Players {
+			p.LongestRoad = p.GetLongestRoad(g.Board)
+		}
+
+		// 5. Update the Trophy
+		g.UpdateLongestRoadTrophy()
 	}
-
-	// 2. Pay the bank
-	cost := Costs["settlement"]
-	if err := player.Pay(cost, g.Bank); err != nil {
-		return err
-	}
-
-	// 3. Place the piece
-	corner.OwnerID = playerID
-	player.Points += 1
-
-	// 4. CRITICAL: Recalculate Longest Road for EVERYONE
-	// Because this settlement might have split an opponent's path
-	for _, p := range g.Players {
-		p.LongestRoad = p.GetLongestRoad(g.Board)
-	}
-
-	// 5. Update the Trophy
-	g.UpdateLongestRoadTrophy()
 
 	return nil
 }
@@ -181,17 +195,17 @@ func (p *Player) Pay(cost ResourceMap, b *Bank) error {
 }
 
 //------------------------------------------------------------------------------------------------------
-// Dev Cards Effects
+// Action Cards Effects
 
-func (p *Player) DrawDevelopmentCard(b *Bank) (DevCard, error) {
+func (p *Player) DrawActionCard(b *Bank) (ActionCard, error) {
 	// 1. Check cost (Sheep: 1, Wheat: 1, Rock: 1)
-	cost := Costs["devCard"]
+	cost := Costs["actionCard"]
 	if !p.CanAfford(cost) {
 		return -1, fmt.Errorf("insufficient resources to buy a development card")
 	}
 
 	// 2. Check if deck is empty
-	if len(b.DevDeck) == 0 {
+	if len(b.ActionCards) == 0 {
 		return -1, fmt.Errorf("no development cards left in the bank")
 	}
 
@@ -202,11 +216,11 @@ func (p *Player) DrawDevelopmentCard(b *Bank) (DevCard, error) {
 	}
 
 	// 4. Pop card from deck (Top of the "stack")
-	card := b.DevDeck[len(b.DevDeck)-1]
-	b.DevDeck = b.DevDeck[:len(b.DevDeck)-1]
+	card := b.ActionCards[len(b.ActionCards)-1]
+	b.ActionCards = b.ActionCards[:len(b.ActionCards)-1]
 
 	// 5. Add to player's hand
-	p.DevCards = append(p.DevCards, card)
+	p.ActionCards = append(p.ActionCards, card)
 
 	return card, nil
 }

@@ -3,21 +3,20 @@ package _game_server
 import "math/rand"
 import "time"
 
-func initGame(gameID int, playerID []int) GameSavestate {
-
-	bank, player := NewGame(playerID)
+// TODO is it necessary ?
+/*func initGame(gameID int, playerID []int) GameSavestate {
 
 	gamestate := GameSavestate{
-		ID:       gameID,
-		Round:    1,
-		Board:    NewStandardBoard(),
-		Players:  player,
-		Bank:     bank,
-		Devcards: generateDevDeck(),
+		ID:          gameID,
+		Round:       1,
+		Board:       NewStandardBoard(),
+		Players:     player,
+		Bank:        bank,
+		ActionCards: generateActionCardDeck(),
 	}
 
 	return gamestate
-}
+}*/
 
 func NewStandardBoard() *Board {
 	board := &Board{
@@ -74,7 +73,8 @@ func (b *Board) SetupAdjacency() {
 	// and assign their 1-3 neighboring Hex IDs.
 }
 
-func NewGame(playerIDs []int) (*Bank, map[int]*Player) {
+func NewBank() *Bank {
+
 	// Initialize Bank
 	bank := &Bank{
 		Resources: ResourceMap{
@@ -84,9 +84,13 @@ func NewGame(playerIDs []int) (*Bank, map[int]*Player) {
 			Wood:  19,
 			Clay:  19,
 		},
-		// Initialize and shuffle 25 DevCards (14 Knights, 5 VPs, etc.)
-		DevDeck: generateDevDeck(),
+		// Initialize and shuffle 25 ActionCards (14 Knights, 5 VPs, etc.)
+		ActionCards: generateActionCardDeck(),
 	}
+	return bank
+}
+
+func NewPlayers(playerIDs []int) map[int]*Player {
 
 	// Initialize Players
 	players := make(map[int]*Player)
@@ -100,11 +104,11 @@ func NewGame(playerIDs []int) (*Bank, map[int]*Player) {
 		}
 	}
 
-	return bank, players
+	return players
 }
 
-func generateDevDeck() []DevCard {
-	deck := []DevCard{}
+func generateActionCardDeck() []ActionCard {
+	deck := []ActionCard{}
 	// Add 14 Knights
 	for i := 0; i < 14; i++ {
 		deck = append(deck, Knight)
@@ -129,11 +133,11 @@ func generateDevDeck() []DevCard {
 		deck = append(deck, Monopoly)
 	}
 	// shuffle the deck
-	ShuffleDevDeck(deck)
+	ShuffleActionCardDeck(deck)
 	return deck
 }
 
-func ShuffleDevDeck(deck []DevCard) {
+func ShuffleActionCardDeck(deck []ActionCard) {
 	rand.New(rand.NewSource(time.Now().UnixNano()))
 	rand.Shuffle(len(deck), func(i, j int) {
 		deck[i], deck[j] = deck[j], deck[i]

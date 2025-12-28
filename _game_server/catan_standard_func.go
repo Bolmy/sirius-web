@@ -1,9 +1,22 @@
 package _game_server
 
-import "fmt"
+import (
+	"fmt"
+	"math/rand"
+	"time"
+)
 
 //------------------------------------------------------------------------------------------------------
 // Standard functions
+
+func RollDice() int {
+
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	roll := r.Intn(7) + r.Intn(7)
+
+	return roll
+}
 
 func (b *Board) DistributeResources(roll int, players map[int]*Player, bank *Bank) {
 	for _, corner := range b.Corners {

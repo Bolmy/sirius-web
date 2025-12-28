@@ -1,13 +1,15 @@
 package _game_server
 
+import "net/http"
+
 type GameSavestate struct {
 	ID int
 
-	Round    int
-	Board    *Board
-	Bank     *Bank
-	Devcards []DevCard
-	Players  map[int]*Player
+	Round       int
+	Board       *Board
+	Bank        *Bank
+	ActionCards []ActionCard
+	Players     map[int]*Player
 
 	CurrentLongestRoad int // Tracks the currently longest road length
 	LongestRoadOwnerID int // Tracks who currently has the 2 points
@@ -19,5 +21,18 @@ type GameSavestate struct {
 }
 
 func main() {
+	// Initialize your game
+	game := &GameSavestate{
+		Board: NewStandardBoard(),
+		Bank:  NewBank(),
+	}
+	server := &Server{GameSaveState: game}
 
+	// Routes
+	http.HandleFunc("/roll", server.handleRollDice)
+	http.HandleFunc("/build/settlement", server.handleBuildSettlement)
+	http.HandleFunc("/status", server.handleGetStatus)
+
+	println("Catan Backend running on :8080")
+	http.ListenAndServe(":8080", nil)
 }
